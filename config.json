@@ -1,0 +1,8 @@
+{
+  "search_url": "https://www.ouedkniss.com/automobiles_vehicules/{page}?priceUnit=MILLION&kilometrage=15000-150000&priceRangeMin=200&priceRangeMax=380",
+  "first_run_max_pages": 30,
+  "max_pages_per_run": 30,
+  "stop_after_known_pages": 1,
+  "min_price_millions": 50,
+  "headless": true
+}

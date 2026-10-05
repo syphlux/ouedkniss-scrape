@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ouedkniss Car Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --other: #a9a8a2;
+  --accent: #2a78d6; --good: #006300;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --other: #6b6a66; --accent: #3987e5; --good: #0ca30c;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --other: #6b6a66; --accent: #3987e5; --good: #0ca30c;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.wrap { max-width: 1400px; margin: 0 auto; padding: 20px 16px 48px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 16px; }
+h1 { font-size: 20px; margin: 0; font-weight: 650; }
+.sub { color: var(--muted); font-size: 13px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+.filters { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px 14px; margin-bottom: 14px; }
+.filters label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink2); font-weight: 550; }
+.filters select, .filters input { font: inherit; color: var(--ink); background: var(--page); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; min-width: 0; }
+.filters select[multiple] { height: 96px; }
+.range { display: flex; gap: 6px; } .range input { width: 50%; }
+.check { flex-direction: row !important; align-items: center; gap: 8px !important; padding-top: 18px; }
+.fbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; grid-column: 1 / -1; }
+button { font: inherit; color: var(--ink); background: var(--page); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.tile .k { font-size: 12px; color: var(--ink2); } .tile .v { font-size: 26px; font-weight: 650; margin-top: 2px; }
+.tile .d { font-size: 12px; color: var(--muted); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+h2 { font-size: 14px; font-weight: 650; margin: 0 0 2px; } .note { font-size: 12px; color: var(--muted); margin: 0 0 8px; }
+.chart { width: 100%; height: 420px; } .chart.tall { height: 520px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--ink2); margin-bottom: 6px; }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; background: var(--c); vertical-align: -1px; }
+.tablewrap { overflow: auto; max-height: 640px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th { color: var(--ink2); font-weight: 600; cursor: pointer; user-select: none; position: sticky; top: 0; background: var(--surface); }
+th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
+th[data-dir="asc"]::after { content: " ▲"; } th[data-dir="desc"]::after { content: " ▼"; }
+td a { color: var(--accent); text-decoration: none; } td a:hover { text-decoration: underline; }
+.badge { font-size: 11px; color: var(--good); font-weight: 600; margin-left: 6px; }
+.drop { color: var(--good); font-size: 12px; }
+.pager { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 10px; color: var(--ink2); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Ouedkniss Car Tracker</h1>
+    <div class="sub" id="meta"></div>
+  </header>
+
+  <section class="card filters" id="filters">
+    <label>Search title <input id="f-q" placeholder="e.g. clio, gt line"></label>
+    <label>Brand <select id="f-brand" multiple></select></label>
+    <label>Model <select id="f-model" multiple></select></label>
+    <label>Fuel <select id="f-fuel" multiple></select></label>
+    <label>Gearbox <select id="f-gear" multiple></select></label>
+    <label>Wilaya <select id="f-wilaya" multiple></select></label>
+    <label>Year <span class="range"><input id="f-ymin" type="number" placeholder="min"><input id="f-ymax" type="number" placeholder="max"></span></label>
+    <label>Price (millions) <span class="range"><input id="f-pmin" type="number" placeholder="min"><input id="f-pmax" type="number" placeholder="max"></span></label>
+    <label>Km <span class="range"><input id="f-kmin" type="number" placeholder="min"><input id="f-kmax" type="number" placeholder="max"></span></label>
+    <label>First seen <select id="f-seen"><option value="">Any time</option><option value="1">Last 24 h</option><option value="3">Last 3 days</option><option value="7">Last 7 days</option><option value="30">Last 30 days</option></select></label>
+    <label class="check"><input id="f-cars" type="checkbox" checked> Cars only (hide vans/trucks)</label>
+    <label class="check"><input id="f-active" type="checkbox"> Still listed (seen in last 2 days)</label>
+    <div class="fbar"><span class="sub">Ctrl/Cmd-click to pick several in a list. Click a dot to open the ad.</span><button id="reset">Reset filters</button></div>
+  </section>
+
+  <section class="tiles" id="tiles"></section>
+
+  <section class="card" style="margin-bottom:14px">
+    <h2>Price vs. kilometres</h2>
+    <p class="note">Bigger dot = newer car. Colour = fuel. Hover for details; click to open the ad.</p>
+    <div class="legend" id="scatter-legend"></div>
+    <div id="scatter" class="chart tall"></div>
+  </section>
+
+  <section class="grid2">
+    <div class="card">
+      <h2>Median price by model</h2>
+      <p class="note">Top 15 models by number of ads. Bar = median price, label = ad count.</p>
+      <div id="models" class="chart"></div>
+    </div>
+    <div class="card">
+      <h2>Median price by year</h2>
+      <p class="note">How price falls with age, across the current filter.</p>
+      <div id="years" class="chart"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 id="table-title">Ads</h2>
+    <div class="tablewrap"><table id="table"><thead></thead><tbody></tbody></table></div>
+    <div class="pager"><button id="prev">Prev</button><span id="pageinfo"></span><button id="next">Next</button></div>
+  </section>
+</div>
+
+<script>
+const DATA = __DATA__;
+const ROWS = DATA.rows;
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const FUEL_SLOTS = ["Essence", "Diesel", "GPL"];  // fixed order -> --s1..--s3, rest = Other
+const fuelKey = f => FUEL_SLOTS.includes(f) ? f : "Other / unknown";
+const fuelColor = f => ({Essence: css("--s1"), Diesel: css("--s2"), GPL: css("--s3")})[f] || css("--other");
+const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const fmt = n => n == null ? "–" : Math.round(n).toLocaleString("fr-FR");
+const daysAgo = s => s ? (Date.now() - new Date(s.replace(" ", "T"))) / 864e5 : Infinity;
+
+$("meta").textContent = `${ROWS.length.toLocaleString()} ads tracked · data from ${DATA.generated}`;
+
+// ---------- filters ----------
+function fillSelect(id, values) {
+  const sel = $(id), keep = new Set([...sel.selectedOptions].map(o => o.value));
+  sel.innerHTML = "";
+  for (const [v, n] of values) { const o = new Option(`${v} (${n})`, v); o.selected = keep.has(v); sel.add(o); }
+}
+const counts = (rows, k) => [...rows.reduce((m, r) => m.set(r[k] || "?", (m.get(r[k] || "?") || 0) + 1), new Map())].sort((a, b) => b[1] - a[1]);
+const picked = id => new Set([...$(id).selectedOptions].map(o => o.value));
+const num = id => $(id).value === "" ? null : +$(id).value;
+
+function filtered({ skipModel = false } = {}) {
+  const q = $("f-q").value.trim().toLowerCase();
+  const B = picked("f-brand"), M = picked("f-model"), F = picked("f-fuel"), G = picked("f-gear"), W = picked("f-wilaya");
+  const [ymin, ymax, pmin, pmax, kmin, kmax] = ["f-ymin", "f-ymax", "f-pmin", "f-pmax", "f-kmin", "f-kmax"].map(num);
+  const seen = +$("f-seen").value || 0;
+  return ROWS.filter(r =>
+    (!q || r.title.toLowerCase().includes(q)) &&
+    (!B.size || B.has(r.brand)) && (skipModel || !M.size || M.has(r.model)) &&
+    (!F.size || F.has(r.fuel || "?")) && (!G.size || G.has(r.gearbox || "?")) && (!W.size || W.has(r.wilaya || "?")) &&
+    (ymin == null || r.year >= ymin) && (ymax == null || r.year <= ymax) &&
+    (pmin == null || r.price_millions >= pmin) && (pmax == null || r.price_millions <= pmax) &&
+    (kmin == null || r.km >= kmin) && (kmax == null || r.km <= kmax) &&
+    (!seen || daysAgo(r.first_seen) <= seen) &&
+    (!$("f-cars").checked || r.category === "voitures") &&
+    (!$("f-active").checked || daysAgo(r.last_seen) <= 2));
+}
+
+function initFilters() {
+  fillSelect("f-brand", counts(ROWS, "brand"));
+  fillSelect("f-fuel", counts(ROWS, "fuel"));
+  fillSelect("f-gear", counts(ROWS, "gearbox"));
+  fillSelect("f-wilaya", counts(ROWS, "wilaya"));
+  refreshModels();
+}
+function refreshModels() {
+  const B = picked("f-brand");
+  fillSelect("f-model", counts(ROWS.filter(r => !B.size || B.has(r.brand)), "model"));
+}
+
+// ---------- charts ----------
+function layoutBase(extra = {}) {
+  const ink2 = css("--ink2"), grid = css("--grid"), axis = css("--axis");
+  const ax = { gridcolor: grid, linecolor: axis, zerolinecolor: grid, tickfont: { color: ink2, size: 11 }, title: { font: { color: ink2, size: 12 } } };
+  return Object.assign({
+    paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)", font: { family: "system-ui, -apple-system, Segoe UI, sans-serif", color: css("--ink") },
+    margin: { l: 60, r: 16, t: 8, b: 48 }, showlegend: false,
+    hoverlabel: { bgcolor: css("--surface"), bordercolor: css("--axis"), font: { color: css("--ink"), size: 12 } },
+    xaxis: { ...ax }, yaxis: { ...ax },
+  }, extra);
+}
+const CFG = { displaylogo: false, responsive: true, modeBarButtonsToRemove: ["select2d", "lasso2d", "autoScale2d"] };
+
+function drawScatter(rows) {
+  const years = rows.map(r => r.year).filter(Boolean), yMin = Math.min(...years, 2015), yMax = Math.max(...years, 2025);
+  const size = y => y ? 8 + 18 * (y - yMin) / Math.max(1, yMax - yMin) : 8;
+  const groups = [...FUEL_SLOTS, "Other / unknown"];
+  const traces = groups.map(g => {
+    const rs = rows.filter(r => fuelKey(r.fuel) === g && r.price_millions != null && r.km != null);
+    return {
+      type: "scattergl", mode: "markers", name: g, x: rs.map(r => r.price_millions), y: rs.map(r => r.km),
+      customdata: rs.map(r => [r.title, r.year, r.engine, r.gearbox, r.location, r.url]),
+      marker: { size: rs.map(r => size(r.year)), color: g === "Other / unknown" ? css("--other") : fuelColor(g), opacity: 0.78, line: { width: 1.5, color: css("--surface") } },
+      hovertemplate: "<b>%{customdata[0]}</b><br>%{x} M DA · %{y:,} km<br>%{customdata[2]} · %{customdata[3]}<br>%{customdata[4]}<extra></extra>",
+    };
+  });
+  $("scatter-legend").innerHTML = groups.map(g => `<span style="--c:${g === "Other / unknown" ? css("--other") : fuelColor(g)}">${g}</span>`).join("") +
+    `<span style="--c:transparent">Dot size: ${yMin} (small) → ${yMax} (big)</span>`;
+  Plotly.react("scatter", traces, layoutBase({ xaxis: { ...layoutBase().xaxis, title: { text: "Price (millions DA)", font: { color: css("--ink2"), size: 12 } } }, yaxis: { ...layoutBase().yaxis, title: { text: "Kilometres", font: { color: css("--ink2"), size: 12 } }, tickformat: "," } }), CFG);
+}
+
+function drawModels(rows) {
+  const by = new Map();
+  for (const r of rows) if (r.price_millions != null) { const k = `${r.brand} ${r.model}`; (by.get(k) || by.set(k, []).get(k)).push(r.price_millions); }
+  const top = [...by].sort((a, b) => b[1].length - a[1].length).slice(0, 15).map(([k, v]) => [k, median(v), v.length]).sort((a, b) => a[1] - b[1]);
+  Plotly.react("models", [{
+    type: "bar", orientation: "h", y: top.map(t => t[0]), x: top.map(t => t[1]), text: top.map(t => `${t[2]} ads`), textposition: "outside",
+    textfont: { color: css("--ink2"), size: 11 }, marker: { color: css("--s1") }, cliponaxis: false,
+    hovertemplate: "<b>%{y}</b><br>Median %{x:.0f} M DA · %{text}<extra></extra>",
+  }], layoutBase({ margin: { l: 130, r: 60, t: 8, b: 40 }, bargap: 0.35, xaxis: { ...layoutBase().xaxis, title: { text: "Median price (millions DA)", font: { color: css("--ink2"), size: 12 } } } }), CFG);
+}
+
+function drawYears(rows) {
+  const by = new Map();
+  for (const r of rows) if (r.year && r.price_millions != null) (by.get(r.year) || by.set(r.year, []).get(r.year)).push(r.price_millions);
+  const ys = [...by.keys()].sort();
+  Plotly.react("years", [{
+    type: "bar", x: ys, y: ys.map(y => median(by.get(y))), customdata: ys.map(y => by.get(y).length),
+    marker: { color: css("--s1") }, hovertemplate: "<b>%{x}</b><br>Median %{y:.0f} M DA · %{customdata} ads<extra></extra>",
+  }], layoutBase({ bargap: 0.3, xaxis: { ...layoutBase().xaxis, type: "category", title: { text: "Year", font: { color: css("--ink2"), size: 12 } } }, yaxis: { ...layoutBase().yaxis, title: { text: "Median price (millions DA)", font: { color: css("--ink2"), size: 12 } } } }), CFG);
+}
+
+function drawTiles(rows) {
+  const p = rows.map(r => r.price_millions).filter(v => v != null), k = rows.map(r => r.km).filter(v => v != null);
+  const fresh = rows.filter(r => daysAgo(r.first_seen) <= 1).length;
+  const drops = rows.filter(r => r.first_price_millions != null && r.price_millions < r.first_price_millions).length;
+  $("tiles").innerHTML = [
+    ["Ads matching", rows.length.toLocaleString(), `of ${ROWS.length.toLocaleString()} tracked`],
+    ["Median price", `${fmt(median(p))} M`, p.length ? `${fmt(Math.min(...p))} – ${fmt(Math.max(...p))} M` : ""],
+    ["Median km", fmt(median(k)), ""],
+    ["New in last 24 h", fresh.toLocaleString(), "first seen by the scraper"],
+    ["Price drops", drops.toLocaleString(), "since first seen"],
+  ].map(([a, b, c]) => `<div class="card tile"><div class="k">${a}</div><div class="v">${b}</div><div class="d">${c}</div></div>`).join("");
+}
+
+// ---------- table ----------
+const COLS = [
+  ["title", "Ad"], ["brand", "Brand"], ["model", "Model"], ["year", "Year", 1], ["price_millions", "Price (M)", 1],
+  ["km", "Km", 1], ["engine", "Engine"], ["fuel", "Fuel"], ["gearbox", "Gearbox"], ["location", "Location"],
+  ["wilaya", "Wilaya", 1], ["seller", "Seller"], ["first_seen", "First seen"],
+];
+let sortKey = "first_seen", sortDir = "desc", page = 0; const PAGE = 50;
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+function drawTable(rows) {
+  const s = [...rows].sort((a, b) => { const x = a[sortKey], y = b[sortKey]; const c = x == null ? 1 : y == null ? -1 : x < y ? -1 : x > y ? 1 : 0; return sortDir === "asc" ? c : -c; });
+  const pages = Math.max(1, Math.ceil(s.length / PAGE)); page = Math.min(page, pages - 1);
+  $("table-title").textContent = `Ads (${rows.length.toLocaleString()})`;
+  $("table").tHead.innerHTML = "<tr>" + COLS.map(([k, l, n]) => `<th data-k="${k}" class="${n ? "num" : ""}" ${k === sortKey ? `data-dir="${sortDir}"` : ""}>${l}</th>`).join("") + "</tr>";
+  $("table").tBodies[0].innerHTML = s.slice(page * PAGE, (page + 1) * PAGE).map(r => "<tr>" + COLS.map(([k, , n]) => {
+    let v = esc(r[k]);
+    if (k === "title") v = `<a href="${esc(r.url)}" target="_blank" rel="noopener">${v}</a>${daysAgo(r.first_seen) <= 1 ? '<span class="badge">NEW</span>' : ""}`;
+    if (k === "km") v = fmt(r.km);
+    if (k === "price_millions" && r.first_price_millions != null && r.price_millions < r.first_price_millions) v += ` <span class="drop">↓ from ${r.first_price_millions}</span>`;
+    return `<td class="${n ? "num" : ""}">${v}</td>`;
+  }).join("") + "</tr>").join("");
+  $("pageinfo").textContent = `Page ${page + 1} of ${pages}`;
+}
+$("table").tHead.addEventListener("click", e => { const k = e.target.dataset.k; if (!k) return; sortDir = k === sortKey && sortDir === "desc" ? "asc" : "desc"; sortKey = k; render(); });
+$("prev").onclick = () => { page = Math.max(0, page - 1); render(); };
+$("next").onclick = () => { page++; render(); };
+
+// ---------- wiring ----------
+function render() { const rows = filtered(); drawTiles(rows); drawScatter(rows); drawModels(rows); drawYears(rows); drawTable(rows); }
+document.querySelectorAll("#filters input, #filters select").forEach(el => el.addEventListener(el.tagName === "INPUT" && el.type !== "checkbox" ? "input" : "change", () => { page = 0; if (el.id === "f-brand") refreshModels(); render(); }));
+$("reset").onclick = () => { document.querySelectorAll("#filters input").forEach(i => i.type === "checkbox" ? (i.checked = i.id === "f-cars") : (i.value = "")); document.querySelectorAll("#filters select").forEach(s => { [...s.options].forEach(o => o.selected = false); s.selectedIndex = s.multiple ? -1 : 0; }); refreshModels(); page = 0; render(); };
+initFilters(); render();
+$("scatter").on("plotly_click", ev => { const u = ev.points[0]?.customdata?.[5]; if (u) window.open(u, "_blank", "noopener"); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+</script>
+</body>
+</html>

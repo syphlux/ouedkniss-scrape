@@ -1,0 +1,48 @@
+name: Scrape Ouedkniss
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"   # every 6 hours (UTC)
+  workflow_dispatch:         # "Run workflow" button in the Actions tab
+
+permissions:
+  contents: write
+
+concurrency:
+  group: scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+
+      - name: Scrape
+        env:
+          PYTHONIOENCODING: utf-8
+          TZ: Africa/Algiers
+        run: python scraper.py
+
+      - name: Commit updated data
+        run: |
+          git config user.name "scraper-bot"
+          git config user.email "scraper-bot@users.noreply.github.com"
+          git add cars.csv dashboard.html scrape.log
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "data: scrape $(date -u +'%Y-%m-%d %H:%M') UTC"
+            git push
+          fi
