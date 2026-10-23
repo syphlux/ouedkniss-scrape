@@ -385,3 +385,9 @@ Call log:
   - waiting for locator("main a[href*='-d']") to be visible
 ); stopping
 2026-10-23 05:30:19  Run end: 0 new, 0 price changes, 839 total
+2026-10-23 12:34:31  Run start: 839 ads in CSV, up to 30 pages
+2026-10-23 12:35:31  Page 1: failed (TimeoutError: Page.goto: Timeout 60000ms exceeded.
+Call log:
+  - navigating to "https://www.ouedkniss.com/automobiles_vehicules/1?priceUnit=MILLION&kilometrage=15000-150000&priceRangeMin=200&priceRangeMax=380", waiting until "domcontentloaded"
+); stopping
+2026-10-23 12:35:31  Run end: 0 new, 0 price changes, 839 total
