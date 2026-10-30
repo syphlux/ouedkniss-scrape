@@ -529,3 +529,9 @@ Call log:
   - waiting for locator("main a[href*='-d']") to be visible
 ); stopping
 2026-10-29 23:40:57  Run end: 0 new, 0 price changes, 839 total
+2026-10-30 06:30:24  Run start: 839 ads in CSV, up to 30 pages
+2026-10-30 06:30:26  Page 1: failed (Error: Page.goto: net::ERR_CONNECTION_RESET at https://www.ouedkniss.com/automobiles_vehicules/1?priceUnit=MILLION&kilometrage=15000-150000&priceRangeMin=200&priceRangeMax=380
+Call log:
+  - navigating to "https://www.ouedkniss.com/automobiles_vehicules/1?priceUnit=MILLION&kilometrage=15000-150000&priceRangeMin=200&priceRangeMax=380", waiting until "domcontentloaded"
+); stopping
+2026-10-30 06:30:26  Run end: 0 new, 0 price changes, 839 total
