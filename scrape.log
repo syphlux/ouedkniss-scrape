@@ -697,3 +697,9 @@ Call log:
   - waiting for locator("main a[href*='-d']") to be visible
 ); stopping
 2026-11-09 06:56:28  Run end: 0 new, 0 price changes, 839 total
+2026-11-09 16:58:25  Run start: 839 ads in CSV, up to 30 pages
+2026-11-09 16:58:59  Page 1: failed (TimeoutError: Page.wait_for_selector: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("main a[href*='-d']") to be visible
+); stopping
+2026-11-09 16:58:59  Run end: 0 new, 0 price changes, 839 total
